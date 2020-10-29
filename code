@@ -1,0 +1,56 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Nov 30 18:08:34 2018
+
+@author: peter
+"""
+
+import time
+import tweepy 
+import re
+import csv
+from textblob import textblob
+
+
+#add your data from your twitter developer account
+CONSUMER_KEY = 'ERCs8g7yEgPBuxNPBhz5keGYJ'
+CONSUMER_SECRET = 'mpn9xYSue7aEpIoGNZc0Cl0hpsWRJ9xyTpV1VOdyWSxIwy5l4h'
+ACCESS_TOKEN = '716555293-NTPmNPBEzR0tfZB2xSgZTP9XK2G53MG3hrIm2xjr'
+ACCESS_TOKEN_SECRET = 'mZIUlK42QQiWngt3rTSlkwptR9jLqpJIyQwZdjkhSHvGz'
+
+#acces the api
+auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
+auth.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
+api = tweepy.API(auth)
+
+
+def get_tweets(query, limit,file):
+
+	count=0 #to count the number of tweets
+
+	#open csv file for append
+	target_file = open(file, 'a', encoding='utf-8', newline='')
+	csv_file = csv.writer(target_file, delimiter=',', quotechar='"')
+
+	for tweet in tweepy.Cursor(api.search,q="#Audi",count=100,include_entities=True,lang="en").items():
+		count=count+1 
+		tweet_content = re.sub("[^A-Za-z0-9.:,'/?!#@]", " ", tweet.text)  	#strip strange characters
+		hastags = re.findall(r"#(\w+)", tweet.text)  						#extract hashtags
+		print(count,tweet.created_at, tweet_content,hastags)				#print to the screen
+		print("===============================================")
+
+		#write to the csv (hashtags (if present) are added to the end of the row)
+		csv_file.writerow([count,tweet.id_str,tweet.created_at, tweet_content])
+		
+		if (count>limit): return 0  #limit of tweets reached, exit
+		
+		if (count%20==0):  #every 20 tweets save the file and wait some seconds
+			target_file.flush()   #to be sure the data are saved into the file
+			time.sleep(8)		  #wait 8 seconds before the next API page. Check your rate limits! 8 secs is safe
+
+	target_file.close()
+	return get_tweets
+
+#get tweets is a function to get tweets and save
+#into the specific csv file
+tweets = get_tweets(query ="", limit = 2000, file="C:/Users/peter/Desktop/Audi123.csv") #put your filename!!
